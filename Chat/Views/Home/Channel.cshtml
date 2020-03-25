@@ -1,0 +1,88 @@
+﻿@model Chat.ViewModels.ChatChannelViewModel
+
+@{
+    ViewData["Title"] = "Chat Channel";
+}
+
+<div class="row">
+    <div class="col-xl-12">
+        <h1>@Model.Channel</h1>
+        <ul id="messages">
+            @foreach (var message in @Model.Messages)
+            {
+                <li>@message.UserId  said: @message.Message</li>
+            }
+        </ul>
+        <input class="form-control" id="message-content" />
+    </div>
+</div>
+
+
+@section Css{
+    <style>
+        body {
+            background-color: #e8e8e8;
+        }
+
+        #messages {
+            background-color: white;
+            position: relative;
+            height: 40vh;
+            max-height: 40vh;
+            overflow-y: auto;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script data-main="scripts/main" src="https://rawgit.com/radu-matei/websocket-manager/master/src/WebSocketManager.Client.TS/dist/WebSocketManager.js"></script>
+
+    <script>
+        $(function () {
+
+            var connection = new WebSocketManager.Connection("ws://localhost:5000/chat");
+
+            connection.enableLogging = false;
+
+            connection.connectionMethods.onConnected = () => {
+                //$("#messages").append("<li>Connected</li>");
+            }
+
+            connection.connectionMethods.onDisconnected = () => {
+                //$("#messages").append("<li>Disconnected</li>");
+            }
+
+            connection.clientMethods["@Model.Channel"] = (socketId, message) => {
+                var messageText = socketId + ' said: ' + message;
+                $("#messages").append("<li>" + messageText + "</li>");
+                $("#messages").scrollTop($("#messages").prop("scrollHeight"));
+                //console.log(messageText);
+            }
+
+            connection.start();
+
+            var $messageContent = $('#message-content');
+
+            $messageContent.keyup(function (e) {
+
+                if (e.keyCode == 13) {
+
+                    var message = $messageContent.val().trim();
+
+                    if (message.length == 0) {
+                        return false;
+                    }
+
+                    connection.invoke("SendMessage", connection.connectionId, "@Model.Channel", message);
+
+                    $messageContent.val('');
+                }
+
+            });
+
+            $("#messages").scrollTop($("#messages").prop("scrollHeight"));
+
+        });
+    </script>
+
+}
